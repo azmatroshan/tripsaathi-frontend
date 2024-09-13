@@ -11,7 +11,6 @@ interface Navigation {
 
 export default function Header({ navigation }: { navigation: Navigation }) {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('user_id');
