@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { XMarkIcon, Bars3Icon } from '@heroicons/react/24/outline';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import tripsaathiLogo from '../img/tripsaathi_black_transparent.png';
 
 interface Navigation {
