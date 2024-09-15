@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import { HiEye, HiEyeOff } from 'react-icons/hi';
 import { FaUser, FaEnvelope, FaLock, FaUserPlus, FaSignInAlt, FaInfoCircle } from 'react-icons/fa';
 import axios from 'axios';
+import Snackbar from '../components/Snackbar';
 
 type SignupFormData = {
     name: string;
@@ -22,12 +23,21 @@ export default function Signup() {
     };
 
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [snackbar, setSnackbar] = useState<{ message: string; type: string } | null>(null);
     const [formData, setFormData] = useState<SignupFormData>({
         name: '',
         email: '',
         password: ''
     });
     const [showSuggestions, setShowSuggestions] = useState(false);
+
+    useEffect(() => {
+        if (snackbar) {
+            const timer = setTimeout(() => setSnackbar(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [snackbar]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -47,9 +57,10 @@ export default function Signup() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!checkPasswordStrength(formData.password)) {
-            window.alert('Please create a stronger password following the suggestions.');
+            setSnackbar({ message: 'Please create a stronger password following the suggestions.', type: 'error' });
             return;
         }
+        setIsLoading(true);
         try {
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/user/signup`, 
                 {
@@ -64,17 +75,20 @@ export default function Signup() {
                 }
             );
 
+            const data = await response.data;
+
             if (response.status === 200) {
-                await response.data;
-                window.alert('Registered successfully. Please login to continue.');
-                navigate('/login');
+                console.log(data);
+                setSnackbar({ message: 'Registered successfully. Please login to continue.', type: 'success' });
+                setTimeout(() => navigate('/login'), 1000);
             } else {
-                const errorData = await response.data;
-                console.log(errorData);
-                window.alert(errorData.detail);
+                setSnackbar({ message: data.detail || 'An error occurred while signing up.', type: 'error' });
             }
-        } catch (error) {
-            window.alert(error || 'An error occurred while signing up.');
+        } catch (error: any) {
+            console.log(error);
+            setSnackbar({ message: error.response.data.detail || 'An error occurred while signing up.', type: 'error' });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -113,6 +127,7 @@ export default function Signup() {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                                         required
+                                        disabled={isLoading}
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -128,6 +143,7 @@ export default function Signup() {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                                         required
+                                        disabled={isLoading}
                                     />
                                 </div>
                                 <div className="mb-6 relative">
@@ -138,6 +154,7 @@ export default function Signup() {
                                             type="button"
                                             onClick={toggleSuggestions}
                                             className="ml-2 text-blue-500 hover:text-blue-700"
+                                            disabled={isLoading}
                                         >
                                             <FaInfoCircle />
                                         </button>
@@ -150,11 +167,13 @@ export default function Signup() {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                                         required
+                                        disabled={isLoading}
                                     />
                                     <button
                                         type="button"
                                         onClick={togglePasswordVisibility}
                                         className="absolute inset-y-0 right-0 flex items-center pr-3 top-8"
+                                        disabled={isLoading}
                                     >
                                         {showPassword ? (
                                             <HiEyeOff className="text-gray-500" />
@@ -178,10 +197,18 @@ export default function Signup() {
                                 )}
                                 <button
                                     type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300 flex items-center justify-center"
+                                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={isLoading}
                                 >
-                                    <FaUserPlus className="mr-2" />
-                                    Sign up
+                                    {isLoading ? (
+                                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    ) : (
+                                        <FaUserPlus className="mr-2" />
+                                    )}
+                                    {isLoading ? 'Signing up...' : 'Sign up'}
                                 </button>
                             </form>
                             <div className="mt-4 text-center">
@@ -195,6 +222,7 @@ export default function Signup() {
                             </div>
                         </div>
                     </div>
+                    {snackbar && <Snackbar message={snackbar.message} type={snackbar.type} />}
                 </div>
             }
         />

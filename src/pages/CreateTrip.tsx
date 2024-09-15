@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Layout from "../components/Layout";
 import axios from "axios";
 import { FaPlane, FaWallet, FaCalendarAlt, FaClock, FaList } from 'react-icons/fa';
 import { useNavigate } from "react-router";
 
-
-const InputField = ({ icon, label, name, type, value, placeholder, required = true, onChange }: any) => (
+const InputField = ({ icon, label, name, type, value, placeholder, required = true, onChange, disabled }: any) => (
     <div className="mb-6">
         <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor={name}>
             {icon} {label}
@@ -18,11 +17,22 @@ const InputField = ({ icon, label, name, type, value, placeholder, required = tr
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            className="w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-100 focus:border-blue-300 transition duration-150 ease-in-out"
+            className={`w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-100 focus:border-blue-300 transition duration-150 ease-in-out ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             required={required}
+            disabled={disabled}
         />
     </div>
 );
+
+const Snackbar = ({ message, type }: { message: string; type: 'success' | 'error' }) => {
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+    return (
+        <div className={`fixed top-[80px] left-1/2 transform -translate-x-1/2 ${bgColor} text-white px-4 py-2 rounded shadow-lg z-50`}>
+            {message}
+        </div>
+    );
+};
 
 export default function CreateTrip() {
     const navigate = useNavigate();
@@ -46,7 +56,7 @@ export default function CreateTrip() {
     });
 
     const [loading, setLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
+    const [snackbar, setSnackbar] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setTripData({
@@ -54,6 +64,13 @@ export default function CreateTrip() {
             [e.target.name]: e.target.value,
         });
     };
+
+    useEffect(() => {
+        if (snackbar) {
+            const timer = setTimeout(() => setSnackbar(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [snackbar]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,7 +96,7 @@ export default function CreateTrip() {
             );
     
             if (response.status === 201) {
-                setSuccessMessage("Trip created successfully!");
+                setSnackbar({ message: "Trip created successfully!", type: 'success' });
                 setTripData({
                     user_id: localStorage.getItem('user_id') || "",
                     destination: "",
@@ -88,10 +105,11 @@ export default function CreateTrip() {
                     duration: "",
                     interests: ""
                 });
-                navigate('/');
+                setTimeout(() => navigate('/'), 1000);
             }
-        } catch (error) {
-            console.error("Error creating trip:", error);
+        } catch (error: any) {
+            console.error(error.response.data.detail);
+            setSnackbar({ message: error.response.data.detail || "Error creating trip. Please try again.", type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -112,6 +130,7 @@ export default function CreateTrip() {
                             value={tripData.destination}
                             placeholder="e.g., Delhi, Noida"
                             onChange={handleInputChange}
+                            disabled={loading}
                         />
                         
                         <InputField 
@@ -122,6 +141,7 @@ export default function CreateTrip() {
                             value={tripData.budget}
                             placeholder="e.g., 10000"
                             onChange={handleInputChange}
+                            disabled={loading}
                         />
 
                         <InputField 
@@ -131,6 +151,7 @@ export default function CreateTrip() {
                             type="date"
                             value={tripData.start_date}
                             onChange={handleInputChange}
+                            disabled={loading}
                         />
 
                         <InputField 
@@ -141,16 +162,18 @@ export default function CreateTrip() {
                             value={tripData.duration}
                             placeholder="e.g., 5"
                             onChange={handleInputChange}
+                            disabled={loading}
                         />
 
                         <InputField 
                             icon={<FaList className="inline-block mr-2" />}
-                            label="interests"
+                            label="Interests"
                             name="interests"
                             type="text"
                             value={tripData.interests}
                             placeholder="e.g., art, culture, history, Club"
                             onChange={handleInputChange}
+                            disabled={loading}
                         />
 
                         <div className="mt-8">
@@ -159,15 +182,23 @@ export default function CreateTrip() {
                                 className={`w-full py-3 px-4 text-white bg-blue-600 rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                                 disabled={loading}
                             >
-                                {loading ? "Creating..." : "Create Trip"}
+                                {loading ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Creating...
+                                    </>
+                                ) : (
+                                    "Create Trip"
+                                )}
                             </button>
                         </div>
                     </form>
 
-                    {successMessage && (
-                        <div className="mt-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
-                            <p className="font-semibold">{successMessage}</p>
-                        </div>
+                    {snackbar && (
+                        <Snackbar message={snackbar.message} type={snackbar.type} />
                     )}
                 </div>
             }

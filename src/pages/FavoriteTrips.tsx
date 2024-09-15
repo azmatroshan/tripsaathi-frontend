@@ -27,6 +27,12 @@ interface Trip {
     favorite: boolean;
 }
 
+const Loader = () => (
+    <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+    </div>
+);
+
 export default function FavoriteTrips() {
     const navigation = {
         pages: [
@@ -40,9 +46,12 @@ export default function FavoriteTrips() {
 
     const [trips, setTrips] = useState<Trip[]>([]);
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [updatingFavorite, setUpdatingFavorite] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchFavoriteTrips = async () => {
+            setLoading(true);
             try {
                 const userId = localStorage.getItem('user_id');
                 if (userId) {
@@ -57,6 +66,8 @@ export default function FavoriteTrips() {
                 }
             } catch (error) {
                 console.error('An error occurred while fetching favorite trips.', error);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -69,6 +80,7 @@ export default function FavoriteTrips() {
 
     const handleFavoriteClick = async (e: React.MouseEvent, tripId: number, isFavorite: boolean) => {
         e.stopPropagation();
+        setUpdatingFavorite(tripId);
         try {
             const response = await axios.patch(`${process.env.REACT_APP_API_URL}/trips/update-favorite/${tripId}?favorite_value=${!isFavorite}`);
             if (response.status === 200) {
@@ -80,6 +92,8 @@ export default function FavoriteTrips() {
             }
         } catch (error) {
             console.error('An error occurred while updating favorite status.', error);
+        } finally {
+            setUpdatingFavorite(null);
         }
     };
 
@@ -101,8 +115,13 @@ export default function FavoriteTrips() {
                     trip.favorite ? 'text-red-500' : 'text-gray-300'
                 } hover:text-red-500`}
                 onClick={(e) => handleFavoriteClick(e, trip.id, trip.favorite)}
+                disabled={updatingFavorite === trip.id}
             >
-                <FaHeart />
+                {updatingFavorite === trip.id ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
+                ) : (
+                    <FaHeart />
+                )}
             </button>
         </div>
     );
@@ -157,15 +176,15 @@ export default function FavoriteTrips() {
                 <div className="p-4">
                     <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">My Favorite Trips</h1>
 
-                    {!selectedTrip ? (
+                    {loading ? (
+                        <Loader />
+                    ) : !selectedTrip ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {trips.length > 0 ? (
                                 trips.map((trip) => (
                                     trip.favorite ? (<TripCard key={trip.id} trip={trip} />)
-                                    : (
-                                        <p className="col-span-full text-center text-gray-600">No favorite trips available.</p>
-                                    )
-                                ))
+                                    : null
+                                )).filter(Boolean)
                             ) : (
                                 <p className="col-span-full text-center text-gray-600">No favorite trips available.</p>
                             )}
