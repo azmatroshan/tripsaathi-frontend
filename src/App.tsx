@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import FavoriteTrips from './pages/FavoriteTrips';
 import CreateTrip from './pages/CreateTrip';
+import TripPage from './pages/TripPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/signup" element={<Signup/>} />
         <Route path="/create-trip" element={<CreateTrip/>} />
         <Route path="/favorite-trips" element={<FavoriteTrips/>} />
+        <Route path="/trip/:trip_id" element={<TripPage />} />
       </Routes>
     </Router>
   );
